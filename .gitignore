@@ -1,0 +1,6 @@
+# 本地草稿/截图，不进仓库
+shots/
+spike/
+__pycache__/
+*.pyc
+.DS_Store
