@@ -1,11 +1,16 @@
 #!/usr/bin/env python3
-"""生成分享预览图 assets/share.jpg（1200×630，QQ/微信/Telegram 通用的 1.91:1）
+"""生成分享图，一次渲染出两个尺寸：
 
-这张图是别人在聊天/说说里看到链接时，抓过去显示在标题旁边的缩略图。
-它必须是**独立的一张图文件**，不能是页面里 base64 内嵌的封面——因为抓取程序
-是另外发一个 HTTP 请求去拿这张图，它看不到页面里内嵌的 base64。
+  assets/share.jpg       1200×630    预览卡缩略图（og:image 指向它，勿改尺寸）
+  assets/promo-2400.png  2400×1260   高清版，手动发说说/朋友圈/当宣传图用
 
-用法：python3 make_share.py
+这张图必须是**独立的一张图文件**，不能是页面里 base64 内嵌的封面——抓取程序
+是另外发一个 HTTP 请求去拿这张图，它看不到页面里 base64 的东西。
+
+高清版直接取 2 倍设备像素比的原始渲染（不是把 1200 拉伸上去），文字是真的按
+2400 宽排出来的，放大看依然锐。
+
+用法：python3.10 make_share.py
 """
 from __future__ import annotations
 
@@ -18,8 +23,9 @@ from playwright.sync_api import sync_playwright
 
 HERE = pathlib.Path(__file__).resolve().parent
 OUT = HERE / "assets" / "share.jpg"
+PROMO = HERE / "assets" / "promo-2400.png"
 W, H = 1200, 630
-SCALE = 2                      # 先按 2 倍渲染再缩回去，字更锐
+SCALE = 2                      # 按 2 倍渲染：缩到 1200 更锐，原样存就是高清版
 MSYH = "file:///mnt/c/Windows/Fonts/msyh.ttc"
 MSYHBD = "file:///mnt/c/Windows/Fonts/msyhbd.ttc"
 
@@ -93,11 +99,15 @@ def main() -> int:
         pg.screenshot(path=str(tmp), clip={"x": 0, "y": 0, "width": W, "height": H})
         b.close()
     tmp_html.unlink()
-    im = Image.open(tmp).convert("RGB").resize((W, H), Image.LANCZOS)
-    im.save(OUT, "JPEG", quality=88, optimize=True, progressive=True)
+    raw = Image.open(tmp).convert("RGB")          # 2 倍原始渲染，2400×1260
+    raw.resize((W, H), Image.LANCZOS).save(
+        OUT, "JPEG", quality=88, optimize=True, progressive=True)
+    raw.save(PROMO, "PNG", optimize=True)         # 高清版：原样存，别缩
     tmp.unlink()
-    print(f"→ {OUT.relative_to(HERE)}  {OUT.stat().st_size:,} B  {W}×{H}"
-          f"  封面 {len(es)} 张")
+    for p, size in ((OUT, f"{W}×{H}"),
+                    (PROMO, f"{raw.width}×{raw.height}")):
+        print(f"→ {p.relative_to(HERE)}  {p.stat().st_size:,} B  {size}")
+    print(f"  封面 {len(es)} 张")
     return 0
 
 

@@ -2,6 +2,7 @@
 shots/
 spike/
 assets/_share*
+assets/promo-2400.png
 __pycache__/
 *.pyc
 .DS_Store
