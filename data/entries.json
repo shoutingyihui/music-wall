@@ -1,5 +1,6 @@
 {
   "_说明": "这是内容的唯一来源。加歌只改这个文件，再跑 build.py 生成 index.html。note_raw = 语音输入原话（一个字不动，存档用）；note = 页面显示的字（只动标点与承接）；note_edits = 逐条改动清单，用户能否掉任意一条。",
+  "updated": "2026-09-12",
   "songs": [
     {
       "id": "clapton-autumn-leaves",

@@ -31,7 +31,28 @@ from palette_to_theme import _hex2rgb, contrast        # noqa: E402
 
 COVER_MAX = 600
 COVER_Q = 86
-UPDATED = "2026-09-12"
+UPDATED = "2026-09-12"                  # 兜底值；实际用 data/entries.json 的 updated
+
+# 分享预览（og:）。抓取程序是**另外发一个 HTTP 请求**来读这些标签和那张预览图的：
+# 它不执行 JS，也看不到页面里 base64 内嵌的封面 —— 所以 og:image 必须是
+# 一个真实的绝对 URL（这里指向仓库里的 assets/share.jpg，见 make_share.py）。
+SITE = "https://shoutingyihui.github.io/music-wall/"
+TITLE = "最近在听"
+DESC = "一张卡片一首歌：封面 + 我在听的时候写下的东西"
+META = f"""<meta name="description" content="{DESC}">
+<meta property="og:type" content="website">
+<meta property="og:site_name" content="{TITLE}">
+<meta property="og:title" content="{TITLE}">
+<meta property="og:description" content="{DESC}">
+<meta property="og:url" content="{SITE}">
+<meta property="og:image" content="{SITE}assets/share.jpg">
+<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+<meta property="og:locale" content="zh_CN">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="twitter:image" content="{SITE}assets/share.jpg">
+<meta name="theme-color" content="#f2efec">"""
+
 MODE = sys.argv[1] if len(sys.argv) > 1 else "follow"
 DEST = "index.html" if MODE == "follow" else "index-light.html"
 
@@ -130,6 +151,7 @@ ul.tracks li{display:flex;gap:12px;align-items:baseline;padding:3px 0}
 
 def build() -> dict:
     data = json.loads((HERE / "data" / "entries.json").read_text(encoding="utf-8"))
+    updated = data.get("updated", UPDATED)
     entries = [{**e, "kind": "song"} for e in data["songs"]] + \
               [{**e, "kind": "album"} for e in data["albums"]]
 
@@ -158,7 +180,8 @@ def build() -> dict:
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>最近在听</title>
+<title>{TITLE}</title>
+{META}
 <style>
 {CSS}
 /* 每张卡片的主色调取自它自己那张封面：--bg 是氛围色，--stripe/--accent 是记忆点 */
@@ -169,7 +192,7 @@ def build() -> dict:
 <div class="wrap">
 <header class="page">
   <h1>最近在听</h1>
-  <div class="sub">{len(songs)} 首单曲 · {len(albums)} 张专辑 · 更新于 {UPDATED}</div>
+  <div class="sub">{len(songs)} 首单曲 · {len(albums)} 张专辑 · 更新于 {updated}</div>
 </header>
 <h2 class="sec">单曲</h2>
 {chr(10).join(cards[:len(songs)])}
