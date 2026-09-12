@@ -51,7 +51,6 @@ body{{width:{W}px;height:{H}px;background:#f2efec;color:#26221f;
 body::before{{content:"";position:absolute;inset:0;
   background:radial-gradient(900px 420px at 12% -10%, #fff6ec 0%, rgba(255,246,236,0) 70%);}}
 h1{{font-size:86px;font-weight:700;letter-spacing:.04em;line-height:1.1;position:relative}}
-.sub{{font-size:25px;color:#6d655f;margin-top:18px;letter-spacing:.02em;position:relative}}
 .strip{{display:flex;gap:22px;align-items:flex-end;position:relative}}
 .strip img{{width:{side}px;height:{side}px;object-fit:cover;border-radius:8px;
   box-shadow:0 12px 26px rgba(0,0,0,.30)}}
@@ -61,7 +60,6 @@ h1{{font-size:86px;font-weight:700;letter-spacing:.04em;line-height:1.1;position
 </style></head><body>
 <div>
   <h1>最近在听</h1>
-  <div class="sub">一张卡片一首歌：封面 + 我在听的时候写下的东西</div>
 </div>
 <div class="strip">{imgs}</div>
 <div class="foot">

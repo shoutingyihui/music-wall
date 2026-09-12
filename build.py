@@ -38,12 +38,10 @@ UPDATED = "2026-09-12"                  # 兜底值；实际用 data/entries.jso
 # 一个真实的绝对 URL（这里指向仓库里的 assets/share.jpg，见 make_share.py）。
 SITE = "https://shoutingyihui.github.io/music-wall/"
 TITLE = "最近在听"
-DESC = "一张卡片一首歌：封面 + 我在听的时候写下的东西"
-META = f"""<meta name="description" content="{DESC}">
-<meta property="og:type" content="website">
+# 故意不写 og:description / description —— 卡片上只留标题 + 图，不堆文案
+META = f"""<meta property="og:type" content="website">
 <meta property="og:site_name" content="{TITLE}">
 <meta property="og:title" content="{TITLE}">
-<meta property="og:description" content="{DESC}">
 <meta property="og:url" content="{SITE}">
 <meta property="og:image" content="{SITE}assets/share.jpg">
 <meta property="og:image:width" content="1200">
