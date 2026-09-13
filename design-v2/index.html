@@ -19,7 +19,7 @@
   /* ---- 颜色：三层分工 ---- */
   --bg:#221F20;        /* 近黑：整页底 */
   --block:#793528;     /* 暗锈红：大面积块面 */
-  --red:#E73B33;       /* 亮红：只做小面积（字标/光标/悬停） */
+  --red:#E73B33;       /* 亮红：只做小面积（字标/「收」字/悬停/焦点框） */
   --paper:#F2EFEC;     /* 文字，不用纯白 */
   --muted:#8E8886;     /* 次级文字 */
   --rule:#3A3432;      /* 1px 分隔线 */
@@ -45,13 +45,15 @@ html{-webkit-text-size-adjust:100%}
 body{margin:0;background:var(--bg);color:var(--paper);
   font-family:var(--f-body);font-size:var(--t-body);line-height:1.9}
 
-/* ============ 背景：密集小字 shou ting 斜排铺满整屏，打字机不停打出来 ============
+/* ============ 背景：密集小字 shou ting 斜排铺满整屏（静态纹理，不动） ============
    不是"居中的巨型水印"（那是最容易读成 AI 模板的一招），也不是单个大词：
-   改成整屏小字斜排网格（印刷物底纹 / 证券纸那种逻辑），整体斜 30°。
-   每个词各自被"打"出来：一条斜向的打印前沿从左上扫到右下，扫过的词留在屏上，
-   前沿下一轮再扫到时原位重打 —— 屏幕始终是满的，只有前沿那一斜条在动。
-   字号刻意做小、对比压到极低（实测约 1.4:1），只当纹理，不参与信息层级；
-   亮红只出现在唯一的一个光标上。
+   是整屏小字斜排网格（印刷物底纹 / 证券纸那种逻辑），整体斜 30°，开机就整屏铺满。
+   ★ 2026-09-14 用户："背景的动效完全没有必要" → 打字机整套删掉
+     （150ms 逐字推进的打印前沿 + 唯一那个亮红光标 + blink 关键帧）。
+     理由站得住：它本来就只当纹理、不参与信息层级；纹理一旦会动就变成视线引力，
+     跟"背景"这个定位自相矛盾。少了每帧重算，页面静止时是零持续开销。
+   字号/描边/alpha/间距四个旋钮是 2026-09-13"太细太疏"那次调的，来由见 .bg-grid；
+   验收口径也跟着变了：不再量"动没动"，改成量"两帧像素是否完全一致"（shot_preview.py）。
    ★ 2026-09-13 用户反馈"太细太疏观感不好" → 一次调四个旋钮（都能量、都留痕）：
      ① 字号 12.5 → 13.5px：笔画按比例一起变粗（DOM 量的瓷砖尺寸跟着变，不用改 JS）；
      ② -webkit-text-stroke:.2px：**真加笔画厚度**。得意黑是单字重（Oblique 一个 face），
@@ -69,12 +71,9 @@ body{margin:0;background:var(--bg);color:var(--paper);
   color:rgba(231,59,51,.26);-webkit-text-stroke:.2px rgba(231,59,51,.08);
   text-shadow:0 0 10px rgba(231,59,51,.08)}
 .bg-grid .tw{display:inline-block;white-space:nowrap}
-/* 光标必须挂在词里面（跟着词的 em 走），且只留一个，在正在打的那个词尾 */
-.bg-grid .cur{display:none;width:.06em;height:.82em;background:var(--red);
-  margin-left:.06em;vertical-align:-.08em;opacity:.8;
-  animation:blink 1.05s steps(1,end) infinite}
-@keyframes blink{0%,49%{opacity:.8}50%,100%{opacity:0}}
-@media (prefers-reduced-motion:reduce){.bg-grid .cur{animation:none;opacity:.8}}
+/* 静态化的直接后果：光标元素、blink 关键帧、prefers-reduced-motion 的降级分支全都不需要了
+   —— 一段不会动的纹理本来就没有"减弱动效"这回事（原来那三个是给打字机配套的）。
+   底纹对 reduced-motion 用户现在天然无害，这也是去掉动效白拿的一个好处。 */
 
 .wrap{position:relative;z-index:1;max-width:1024px;margin:0 auto;
   padding:var(--s6) var(--s4) var(--s5)}
@@ -146,11 +145,13 @@ body[data-open] .veil{opacity:1;pointer-events:auto}
 
 /* 浮层本身不虚化：卡片搬进来当一张"印张"（直角、1px 细线、悬在虚化页之上）。
    深底上黑色投影是看不见的（越投越黑），层次只能靠"印张比底亮一档 + 一道细线"。
-   ★ 印张必须比视口小一圈（宽 860、高 = 视口 - 顶带 - 底留白），而且**不在正中**：
-     顶上留 30vh，正好把页头那一带（字标 + 大标题「收听」）露出来。页面底色近黑，
-     左右那点空边糊了也看不出名堂，只有那几笔白色大字糊掉之后还留着一个能认出的形状。
-     顶带 =「前一个页面」唯一的可见证据，别为了把印张做大而吃掉它。 */
-.ovl{--pad:clamp(28px,8vh,88px);--band:clamp(180px,30vh,320px);--px:var(--s4);
+   ★ 2026-09-14 用户："打开阅读专辑正文的视窗太低了，不够舒适" → 顶带 30vh → 7vh。
+     原来留 30vh 是为了把页头那几笔大字露出来当"前一个页面"的证据，代价是印张可用高度只有
+     62vh（900px 视口里 558px）——读两行就得滚，这是这一次改动的全部病根。
+     证据现在交给**整层虚化**：页头糊掉之后仍是个能认出的形状，不必占掉三分之一个屏。
+     印张可用高度 62vh → 88vh（手机 91vh）。要"干脆满屏"就把 --band 设 0，
+     但留这条窄边是印张与页面的唯一接缝，更像"浮出来的一页"而不是换了个页面。 */
+.ovl{--pad:clamp(20px,5vh,56px);--band:clamp(48px,7vh,72px);--px:var(--s4);
   position:fixed;inset:0;z-index:6;display:none;overflow:auto;
   -webkit-overflow-scrolling:touch;padding:var(--band) var(--px) var(--pad)}
 body[data-open] .ovl{display:block}
@@ -175,6 +176,43 @@ body[data-open]{overflow:hidden}
 .ovl .card[data-closing]{opacity:0;transform:translateY(-10px);
   transition:opacity .28s ease,transform .28s ease}
 
+/* ============ 滚动条：跟这套风格统一（直角、细、暗底上一枚灰滑块） ============
+   ★ 2026-09-14 用户："滚动时旁边的滚动轴和设计风格不够统一，要嘛去掉，要嘛换一个"。
+   选"换"不是"去掉"：去掉等于把"下面还有多长"这唯一的线索扔了（手机上本来就隐藏，
+   桌面上它是唯一尺度感）。换成系统默认的那根浅色圆角轴才是真的不统一 —— 亮底圆角
+   跟近黑直角这套正相反。
+   口径：宽度 10px、圆角 0（跟全站 --r:0 一致）、轨道透明、滑块纸白 20%（不是亮红：
+   滚条是常驻面积，亮红只做小面积**瞬时**反馈）、悬停才转亮红 —— 那一下是"我在拖你"。
+   Firefox：Gecko 不认 ::-webkit-scrollbar 伪元素，得走 scrollbar-width/scrollbar-color。
+   ★ 坑一（真实的，实测过）：scrollbar-width / scrollbar-color 是**继承属性** —— 只要
+     Chromium 在滚动容器上看到它（哪怕只在 html 上写一次），就会丢掉整套 ::-webkit-scrollbar
+     自定义、改用系统原生条。实测同一段样式：把标准属性裸写在 html 上，滚条的布局占位从
+     10px 变成 15px（就是换成系统那条了）。所以标准属性必须关进 @supports(-moz-appearance:none)，
+     只让 Gecko 看见。
+   ★ 坑二（别冤枉 CSS）：改完如果截图里一根滚条都没有，先怀疑 Playwright 默认带
+     --hide-scrollbars 启动 Chromium（滚条既不画也不占位，跟 CSS 无关）——
+     shot_preview.py 里靠 ignore_default_args 摘掉它才验得出来。 */
+html::-webkit-scrollbar,
+.ovl::-webkit-scrollbar,
+.ovl .card::-webkit-scrollbar{width:10px;height:10px}
+html::-webkit-scrollbar-track,
+.ovl::-webkit-scrollbar-track,
+.ovl .card::-webkit-scrollbar-track{background:transparent}
+html::-webkit-scrollbar-thumb,
+.ovl::-webkit-scrollbar-thumb,
+.ovl .card::-webkit-scrollbar-thumb{background:rgba(242,239,236,.20);border-radius:var(--r)}
+html::-webkit-scrollbar-thumb:hover,
+.ovl::-webkit-scrollbar-thumb:hover,
+.ovl .card::-webkit-scrollbar-thumb:hover{background:rgba(231,59,51,.55)}
+html::-webkit-scrollbar-corner,
+.ovl::-webkit-scrollbar-corner,
+.ovl .card::-webkit-scrollbar-corner{background:transparent}
+/* Firefox 专用：Gecko 不认 ::-webkit-scrollbar 伪元素（Chromium 被挡在 @supports 外面） */
+@supports (-moz-appearance:none){
+  html,.ovl,.ovl .card{scrollbar-width:thin;
+    scrollbar-color:rgba(242,239,236,.20) transparent}
+}
+
 /* 浮现：封面先浮上来，正文/摘句晚 80ms 跟上（都从下方 14px 起） */
 .card[data-open] .cover,
 .card[data-open] .c-more{animation:rise .5s cubic-bezier(.16,.84,.28,1) both}
@@ -186,7 +224,7 @@ body[data-open]{overflow:hidden}
   .brand svg{height:28px}
   .c-head{grid-template-columns:128px 1fr;gap:var(--s3)}
   .c-body{padding-right:0}
-  .ovl{--pad:var(--s3);--px:var(--s3);--band:clamp(160px,28vh,240px)}
+  .ovl{--pad:var(--s3);--px:var(--s3);--band:clamp(36px,6vh,56px)}
   .ovl .card{--cp:var(--s3)}
   /* 手机上的印张比列表页窄一圈（左右各让 24），封面那一列得跟着收一档：
      不收的话艺人名右侧只剩 83px，「Miles Davis」就被拆成「Miles / Davis」两行
@@ -297,18 +335,17 @@ body[data-open]{overflow:hidden}
   addEventListener('keydown',function(e){if(e.key==='Escape')close();});
 })();
 
-/* ============ 背景底纹：斜排小字 shou ting，一条打印前沿扫过去 ============
-   所有瓷砖由**同一个时钟**驱动（不用几百个 setTimeout）：瓷砖 (row,col) 的"波次"
-   band = row + col，前沿进度 S 每 STEP 毫秒走 1 个字；p = S - band 就是这块该打到第几个字。
-   p<0 = 前沿还没到 → 显示上一轮打满的字（所以屏幕始终是满的，不会整屏闪一下再重来）。
-   p 走完一圈（total）后原地重打。光标只挂在"正在打"的那块砖上，全屏只有一个。 */
+/* ============ 背景底纹：斜排小字 shou ting，静态铺满 ============
+   ★ 2026-09-14 去掉了打字机动效（用户："背景的动效完全没有必要"）。
+     原来是：所有瓷砖由**同一个时钟**驱动（波次 band = row+col，前沿每 150ms 走一个字，
+     全屏唯一一个亮红光标挂在"正在打"的那块砖后面，p<0 的砖显示上一轮的字所以屏幕始终是满的）。
+     现在 build() 直接把 WORD 写进每块砖 —— 没有时钟、没有 rAF、没有光标，
+     页面静止时不做任何逐帧工作。留下的只是"铺得对不对"：
+     瓷砖尺寸量测 + 按视口算行列 + 字体就绪后重量 + 改窗口重铺（250ms 防抖）。 */
 (function(){
   var layer=document.getElementById('bgtype'),grid=document.getElementById('bgGrid');
-  var WORD='shou ting',N=WORD.length;
-  var STEP=150;          /* 每字毫秒 */
-  var HOLD=14;           /* 打完后停多久再被下一轮重打（以"字"为单位） */
-  var reduce=matchMedia('(prefers-reduced-motion: reduce)').matches;
-  var tiles=[],total=0,S=0,last=0,curIdx=-1,freeze=false;
+  var WORD='shou ting';
+  var tiles=[];
 
   /* 量一块砖的**真实**尺寸。坑：网格整体转了 30°，getBoundingClientRect 给的是旋转后的
      外接矩形（12.5×68 的砖会量成 44.8×65.1），行列数就全算错了 —— 表现出来是"角上没铺满"。
@@ -335,63 +372,27 @@ body[data-open]{overflow:hidden}
     var cols=Math.max(1,Math.ceil(layer.clientWidth*2/(m.w+gapX)));
     var rows=Math.max(1,Math.ceil(layer.clientHeight*2/(m.h+gapY)));
     grid.style.gridTemplateColumns='repeat('+cols+','+m.w+'px)';
-    grid.innerHTML='';tiles=[];curIdx=-1;
+    grid.innerHTML='';tiles=[];
+    /* 几千块砖先装进 documentFragment 再一次性挂上：逐块 appendChild 会触发多次重排 */
+    var frag=document.createDocumentFragment();
     for(var r=0;r<rows;r++)for(var c=0;c<cols;c++){
       var s=document.createElement('span');s.className='tw';s.style.width=m.w+'px';
-      var tx=document.createElement('span'),cu=document.createElement('span');
-      cu.className='cur';
-      s.appendChild(tx);s.appendChild(cu);grid.appendChild(s);
-      tiles.push({tx:tx,cu:cu,b:r+c,n:-1});
+      var tx=document.createElement('span');tx.textContent=WORD;
+      s.appendChild(tx);frag.appendChild(s);
+      tiles.push({tx:tx});
     }
-    total=(rows+cols-1)+N+HOLD;
-    S=0;last=0;
-    if(reduce){for(var i=0;i<tiles.length;i++)tiles[i].tx.textContent=WORD;return;}
-    requestAnimationFrame(tick);
+    grid.appendChild(frag);
   }
 
-  function paint(){
-    var act=-1,ap=1e9;
-    for(var i=0;i<tiles.length;i++){
-      var t=tiles[i],p=S-t.b;
-      if(p<0)p+=total;                /* 前沿还没到：留上一轮的字 */
-      var n=p<N?Math.floor(p):N;
-      if(n<0)n=0;
-      if(n!==t.n){t.n=n;t.tx.textContent=n?WORD.slice(0,n):'';}
-      if(n>0&&n<N&&p<ap){ap=p;act=i;}
-    }
-    if(act!==curIdx){
-      if(curIdx>=0)tiles[curIdx].cu.style.display='none';
-      if(act>=0)tiles[act].cu.style.display='inline-block';
-      curIdx=act;
-    }
-  }
-
-  function tick(now){
-    if(freeze)return;                 /* 截图时钉住，保证图可复现 */
-    if(!last)last=now;
-    S+=(now-last)/STEP;last=now;
-    if(S>=total)S-=total;
-    paint();
-    requestAnimationFrame(tick);
-  }
-
-  /* 截图脚本用：钉住时钟 + 查状态 */
-  window.__bgFreeze=function(){freeze=true;};
-  /* 截图用：把前沿钉在确定的进度上（v 以"字"为单位），出图可复现 */
-  window.__bgSet=function(v){S=v;last=0;paint();freeze=true;};
+  /* 截图脚本还在调这三个钩子。静态底纹下没有"前沿"可钉、也没有时钟要停 ——
+     所以都是空实现 / 重铺一遍（保留签名，免得 shot_preview.py 那边一起崩）。 */
+  window.__bgFreeze=function(){};
+  window.__bgSet=function(){};
+  window.__bgFill=function(){build();};
   window.__bgState=function(){
-    var f=0,part=0;
-    for(var i=0;i<tiles.length;i++){
-      if(tiles[i].n>0)f++;
-      if(tiles[i].n>0&&tiles[i].n<N)part++;
-    }
-    return {tiles:tiles.length,partial:part,filled:f,cursor:curIdx};
-  };
-  window.__bgFill=function(){
-    freeze=true;
-    for(var i=0;i<tiles.length;i++){tiles[i].tx.textContent=WORD;tiles[i].n=N;}
-    if(curIdx>=0)tiles[curIdx].cu.style.display='none';
-    curIdx=-1;
+    var f=0;
+    for(var i=0;i<tiles.length;i++)if(tiles[i].tx.textContent===WORD)f++;
+    return {tiles:tiles.length,filled:f,partial:0,cursor:-1};
   };
 
   build();
